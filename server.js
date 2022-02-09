@@ -1,15 +1,21 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+// using dotenv package to use env variablse
 require("dotenv").config();
 
 const db = require("./models");
 
+// initialising express
 const app = express();
+// using middlewares
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+
+// using cors to allow cross origin requests
 app.use(cors());
 
+// database connection
 db.mongoose.connect(db.url, {
     useNewUrlParser: true,
     useUnifiedTopology: true

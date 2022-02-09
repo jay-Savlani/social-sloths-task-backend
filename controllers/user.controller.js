@@ -1,9 +1,13 @@
 const db = require("../models");
 const User = db.user;
+// requiring bcrypt to store hashed password in database
 const bcrypt = require("bcrypt");
 const {fromString, isUuid} = require("uuidv4");
 const jsonwebtoken = require("jsonwebtoken");
+const uitls = require("../utils/utils");
 
+// Function to get all users data 
+// will not work if user has not passed access token for authorization
 exports.getAllUsers = (req,res) => {
     console.log("Recieved request to get all users");
     User.find({})
@@ -28,8 +32,16 @@ exports.getAllUsers = (req,res) => {
     
 }
 
+// Function to login a user. An unique uuid and access_token is sent to user for subsequent access
 exports.login = (req,res) => {
-    const {email, password} = req.body;
+    let authHeader = req.headers["authorization"];
+    // console.log("auth header is", authHeader);
+    if(!authHeader) {
+        res.status(401).json({
+            message: "Access-token not provided"
+        })
+    }
+    const {email, password} = uitls.extractEmailAndPasswordFromHeader(authHeader);
     if(!email || !password) {
         res.status(400).json({
             message: "Please provide email and password"
@@ -46,20 +58,24 @@ exports.login = (req,res) => {
         }
         else {
             if(bcrypt.compareSync(password, user.password)) {
-                const access_token = jsonwebtoken.sign(user._id, "hash55");
-                const uuid = fromString(user._id);
+                const access_token = jsonwebtoken.sign({_id: user._id}, "hash55");
+                // console.log("access token generated: ", access_token);
+                const uuid = fromString(user._id.toString());
+                // console.log("uuid generated");
                 user.uuid = uuid;
                 user.access_token = access_token;
                 user.isLoggedIn = true;
                 user.save()
                 res.status(200).json({
-                    uuid: uuid ,
+                    uuid: uuid,
+                    access_token: access_token,
+                    user: user,
                     message: "Logged in Successfully"
                 }) 
             }
             else {
                 res.status(401).json({
-                    user: user,
+                    
                     message: "Invalid Password"
                 }) 
             }
@@ -74,6 +90,7 @@ exports.login = (req,res) => {
     })
 }
 
+// Function to logout user. UUID sent to user during login is checked to validate user
 exports.logout = (req,res) => {
     const {uuid} = req.body;
     if(!uuid) {
@@ -109,6 +126,7 @@ exports.logout = (req,res) => {
     }
 }
 
+// Function to sign up user. Data is sent in request body
 exports.signUp = (req,res) => {
     const {name , email, password , age} = req.body;
     if(!name || !email || !password || !age) {
@@ -116,6 +134,7 @@ exports.signUp = (req,res) => {
             message: "Please provide all details"
         });
     }
+    // password is hashed using bcrypt before storing in database. This way database will be secure from attackers
     const hashPassword = bcrypt.hashSync(password,10);
     const signUpData = {
         name: name,
@@ -139,6 +158,7 @@ exports.signUp = (req,res) => {
     })
 }
 
+// function to delete a user based on email. As in schema all emails are defined as unique
 exports.delete = (req,res) => {
     const {email} = req.body;
     if(!email) {

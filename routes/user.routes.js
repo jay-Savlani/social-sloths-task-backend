@@ -6,15 +6,17 @@ module.exports = (app) => {
 
     app.use("/api/user", router);
 
-    router.get("/users" , auth, userController.getAllUsers);
+    // implementing middleware to verify json token
+    router.get("/" , auth, userController.getAllUsers);
 
-    router.post("/user/signup" , userController.signUp);
+    router.post("/signup" , userController.signUp);
 
-    router.post("user/login" , userController.login);
+    router.post("/login" , userController.login);
 
-    router.post("user/logout", userController.logout);
+    router.post("/logout", userController.logout);
 
-    router.delete("user/delete" , auth , userController.delete);
+    // implementing middleware to verify json token
+    router.delete("/delete" , auth , userController.delete);
     
 
 }
